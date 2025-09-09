@@ -1,0 +1,32 @@
+services:
+  shortener-redis:
+    image: redis:7-alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-data:/data
+    networks:
+      - shortener-internal
+  shortener-mongodb:
+    image: bitnami/mongodb:7.0
+    ports:
+      - 27017:27017
+    environment:
+      MONGODB_REPLICA_SET_MODE: primary
+      MONGODB_REPLICA_SET_KEY: replicasetkey123
+      MONGODB_ADVERTISED_HOSTNAME: shortener-mongodb
+      MONGODB_ROOT_USER: admin
+      MONGODB_ROOT_PASSWORD: qwerty
+      MONGODB_DATABASE: shortener
+      MONGODB_USERNAME: user
+      MONGODB_PASSWORD: qwerty
+    volumes:
+      - mongodb-data:/bitnami/mongodb
+    networks:
+      - shortener-internal
+volumes:
+  redis-data:
+  mongodb-data:
+networks:
+  shortener-internal:
+    driver: bridge

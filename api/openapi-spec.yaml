@@ -1,0 +1,156 @@
+openapi: '3.0.0'
+info:
+  title: 'URL Shortener API'
+  description: 'API description for the service managing shortened URLs.'
+  version: '0.0.1'
+servers:
+  - url: http://localhost:3000
+    description: 'Dev Server'
+tags:
+  - name: 'Shortener endpoints'
+    description: 'URL shortener related endpoints.'
+  - name: 'Service monitoring'
+    description: 'Service monitoring endpoints.'
+paths:
+  /api/shortener:
+    post:
+      tags:
+        - 'Shortener endpoints'
+      security:
+        - bearerAuth: []
+      summary: 'Creates a link.'
+      description: 'Creates a short link based on long URL.'
+      requestBody:
+        description: 'Request body data needed for creating a short link.'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShortenerRequestDTO'
+      responses:
+        '201':
+          description: 'Ok.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortenerResponseDTO'
+        '404':
+          description: 'Not found.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortenerErrorDTO'
+        '400':
+          description: 'Bad request.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortenerErrorDTO'
+  /health:
+    get:
+      tags:
+        - 'Service monitoring'
+      summary: 'Health check.'
+      description: 'Performs service health check.'
+      responses:
+        '200':
+          description: 'Health check successful response.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponseDTO'
+        '500':
+          description: 'Check health check failure response.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponseDTO'
+              example:
+                all_healthy: false
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+  schemas:
+    ShortenerRequestDTO:
+      description: 'Create shortener input data.'
+      type: object
+      properties:
+        url:
+          description: 'The URL which will be shortened.'
+          type: string
+          format: url
+          example: 'https://mybusiness.com/blog/very-long-slug-3'
+      required:
+        - url
+    ServiceHealthDTO:
+      description: 'Service health check details.'
+      type: object
+      properties:
+        name:
+          description: 'Service name.'
+          type: string
+          example: 'redis'
+        healthy:
+          description: 'True if the service is healthy.'
+          type: boolean
+        check_duration:
+          description: 'Check duration.'
+          type: string
+          example: '309.576µs'
+        error:
+          description: 'Error message describing the unhealthy state.'
+          type: string
+          example: 'Connection timeout (1000 ms).'
+      required:
+        - name
+        - healthy
+        - check_duration
+    ShortenerResponseDTO:
+      description: 'Successful response.'
+      type: object
+      properties:
+        short_url:
+          description: 'The short URL.'
+          type: string
+          format: url
+          example: 'https://example.com/s/XcNRfg'
+        key:
+          description: 'Unique key.'
+          type: string
+          example: 'XcNRfg'
+      required:
+        - short_url
+        - key
+    ShortenerErrorDTO:
+      description: 'Error response.'
+      type: object
+      properties:
+        error:
+          description: 'The error message.'
+          type: string
+          example: 'Problem description.'
+      required:
+        - error
+    HealthResponseDTO:
+      description: 'Health check response.'
+      type: object
+      properties:
+        all_healthy:
+          description: 'True if all services are healthy.'
+          type: boolean
+          example: true
+        services:
+          description: 'Health check details for each service in part.'
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceHealthDTO'
+        server_time:
+          description: 'Server time.'
+          type: string
+          format: 'date-time'
+      required:
+        - all_healthy
+        - services
+        - server_time
