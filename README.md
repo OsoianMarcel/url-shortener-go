@@ -86,7 +86,7 @@ You can start the project easily using the provided [manage.sh] script:
 # start the infrastructure
 ./manage.sh dc:up
 
-# run the application (cmd/app/main.go)
+# ensure the .env file is present before running the application
 ./manage.sh run
 ```
 
