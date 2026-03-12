@@ -19,26 +19,21 @@ const (
 	linkKeyLength        = 6
 )
 
-type repository interface {
-	InsertOne(ctx context.Context, shortLink domain.ShortLink) (string, error)
-	FindOne(ctx context.Context, key string) (domain.ShortLink, error)
-	FindOriginalURL(ctx context.Context, key string) (string, error)
-	DeleteOne(ctx context.Context, key string) error
-	IncreaseHits(ctx context.Context, key string) error
-	FindStats(ctx context.Context, key string) (domain.StatsResult, error)
-}
-
 type shortLinkUsecase struct {
 	logger        *slog.Logger
-	shortLinkRepo repository
-	baseURL       string
+	shortLinkRepo domain.ShortLinkRepo
+	buildShortURL func(key string) string
 }
 
-func NewShortLinkUsecase(logger *slog.Logger, shortLinkRepository repository, baseURL string) *shortLinkUsecase {
+func NewShortLinkUsecase(
+	logger *slog.Logger,
+	shortLinkRepository domain.ShortLinkRepo,
+	buildShortURL func(key string) string,
+) *shortLinkUsecase {
 	return &shortLinkUsecase{
 		logger:        logger,
 		shortLinkRepo: shortLinkRepository,
-		baseURL:       baseURL,
+		buildShortURL: buildShortURL,
 	}
 }
 
@@ -53,7 +48,7 @@ func (u *shortLinkUsecase) Create(ctx context.Context, createInput domain.Create
 		ent := domain.ShortLink{
 			Key:         key,
 			OriginalURL: createInput.OriginalURL,
-			ShortURL:    createFullShortUrl(u.baseURL, key),
+			ShortURL:    u.buildShortURL(key),
 			CreatedAt:   time.Now(),
 		}
 
@@ -82,6 +77,10 @@ func (u *shortLinkUsecase) Create(ctx context.Context, createInput domain.Create
 func (u *shortLinkUsecase) Delete(ctx context.Context, key string) error {
 	err := u.shortLinkRepo.DeleteOne(ctx, key)
 	if err != nil {
+		if err == domain.ErrShortLinkNotFound {
+			return domain.ErrShortLinkNotFound
+		}
+
 		return fmt.Errorf("Usecase.Delete (key: %s): %w", key, err)
 	}
 
@@ -136,8 +135,4 @@ func (u *shortLinkUsecase) Stats(ctx context.Context, key string) (domain.StatsR
 		Hits:      statsModel.Hits,
 		CreatedAt: statsModel.CreatedAt,
 	}, nil
-}
-
-func createFullShortUrl(baseURL string, key string) string {
-	return fmt.Sprintf("%s/api/shortener/%s/redirect", baseURL, key)
 }

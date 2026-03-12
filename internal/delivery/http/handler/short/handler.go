@@ -81,13 +81,19 @@ func (h *handler) shorten() http.Handler {
 
 func (h *handler) delete() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		responder := httputil.NewJsonResponder(w, h.logger)
+
 		err := h.usecase.Delete(r.Context(), r.PathValue("linkKey"))
 		if err != nil {
+			if err == domain.ErrShortLinkNotFound {
+				responder.NotFound("Link not found.")
+				return
+			}
+
 			h.logger.Error(
 				"Handler.delete",
 				slog.Any("error", err),
 			)
-			responder := httputil.NewJsonResponder(w, h.logger)
 			responder.ServerError()
 			return
 		}

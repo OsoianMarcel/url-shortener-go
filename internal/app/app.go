@@ -60,10 +60,7 @@ func (a *app) Serve(ctx context.Context) error {
 		a.redisClient,
 	)
 
-	a.httpServer, err = initHTTPServer(a.serviceProvider)
-	if err != nil {
-		return fmt.Errorf("init http server: %w", err)
-	}
+	a.httpServer = initHTTPServer(a.serviceProvider)
 
 	a.logger.Info("starting the HTTP server", slog.String("addr", a.serviceProvider.config.Http.Address()))
 
@@ -102,16 +99,7 @@ func (a *app) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func initHTTPServer(sp *serviceProvider) (*http.Server, error) {
-	httpConfig, err := config.NewHTTPConfig()
-	if err != nil {
-		return nil, fmt.Errorf("load http config: %w", err)
-	}
-	businessConfig, err := config.NewBusinessConfig()
-	if err != nil {
-		return nil, fmt.Errorf("load business config: %w", err)
-	}
-
+func initHTTPServer(sp *serviceProvider) *http.Server {
 	mux := http.NewServeMux()
 
 	// Shortener handlers.
@@ -119,8 +107,8 @@ func initHTTPServer(sp *serviceProvider) (*http.Server, error) {
 		mux,
 		sp.logger,
 		sp.getShortUsecase(),
-		httpConfig.APISecret,
-		businessConfig.LinkNotFoundRedirectURL,
+		sp.config.Http.APISecret,
+		sp.config.Business.LinkNotFoundRedirectURL,
 	)
 
 	// Health handlers.
@@ -130,14 +118,14 @@ func initHTTPServer(sp *serviceProvider) (*http.Server, error) {
 	commonHTTPHandler.RegisterHandler(mux, sp.logger, "./api/openapi-spec.yaml")
 
 	httpServer := &http.Server{
-		Addr: httpConfig.Address(),
+		Addr: sp.config.Http.Address(),
 		Handler: middleware.Chain(
 			commonHTTPHandler.PreflightHandler(mux),
 			middleware.LoggingMiddleware(sp.logger),
 		),
 	}
 
-	return httpServer, nil
+	return httpServer
 }
 
 func initLogger() *slog.Logger {

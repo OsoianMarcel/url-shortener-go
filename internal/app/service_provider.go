@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/OsoianMarcel/url-shortener/internal/config"
@@ -56,10 +57,14 @@ func (sp *serviceProvider) getShortUsecase() domain.ShortLinkUsecase {
 		return sp.shortUsecase
 	}
 
+	buildShortURL := func(key string) string {
+		return fmt.Sprintf("%s/api/shortener/%s/redirect", sp.config.Business.BaseURL, key)
+	}
+
 	sp.shortUsecase = usecase.NewShortLinkUsecase(
 		sp.logger,
 		sp.getShortRepository(),
-		sp.config.Business.BaseURL,
+		buildShortURL,
 	)
 
 	return sp.shortUsecase
@@ -70,7 +75,11 @@ func (sp *serviceProvider) getHealthUsecase() domain.HealthUsecase {
 		return sp.healthUsecase
 	}
 
-	sp.healthUsecase = usecase.NewHealthUsecase(sp.logger, sp.mongoClient, sp.redisClient)
+	sp.healthUsecase = usecase.NewHealthUsecase(
+		sp.logger,
+		infra.NewMongoHealthAdapter(sp.mongoClient),
+		infra.NewRedisHealthAdapter(sp.redisClient),
+	)
 
 	return sp.healthUsecase
 }

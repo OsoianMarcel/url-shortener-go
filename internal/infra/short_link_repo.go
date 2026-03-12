@@ -156,9 +156,12 @@ func (r *shortLinkRepo) FindOriginalURL(ctx context.Context, key string) (string
 }
 
 func (r *shortLinkRepo) DeleteOne(ctx context.Context, key string) error {
-	_, err := r.collection.DeleteOne(ctx, bson.M{"key": key})
+	res, err := r.collection.DeleteOne(ctx, bson.M{"key": key})
 	if err != nil {
 		return err
+	}
+	if res.DeletedCount == 0 {
+		return domain.ErrShortLinkNotFound
 	}
 
 	err = r.deleteEntityCache(ctx, key)

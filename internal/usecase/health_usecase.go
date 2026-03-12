@@ -7,38 +7,35 @@ import (
 	"time"
 
 	"github.com/OsoianMarcel/url-shortener/internal/domain"
-	"github.com/redis/go-redis/v9"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var _ domain.HealthUsecase = (*healthUsecase)(nil)
 
 type healthUsecase struct {
-	logger      *slog.Logger
-	mongoClient *mongo.Client
-	redisClient *redis.Client
+	logger       *slog.Logger
+	dependencies []domain.HealthDependency
 }
 
 func NewHealthUsecase(
 	logger *slog.Logger,
-	mongoClient *mongo.Client,
-	redisClient *redis.Client,
+	dependencies ...domain.HealthDependency,
 ) *healthUsecase {
 	return &healthUsecase{
-		logger:      logger,
-		mongoClient: mongoClient,
-		redisClient: redisClient,
+		logger:       logger,
+		dependencies: dependencies,
 	}
 }
 
 func (u *healthUsecase) CheckHealth(ctx context.Context) domain.HealthCheckResult {
-	services := make([]domain.ServiceHealth, 0, 2)
+	services := make([]domain.ServiceHealth, 0, len(u.dependencies))
 	rc := make(chan domain.ServiceHealth)
 
 	// run health checks in concurrently
 	wg := new(sync.WaitGroup)
-	wg.Go(func() { getMongoHealth(ctx, u.mongoClient, rc) })
-	wg.Go(func() { getRedisHealth(ctx, u.redisClient, rc) })
+	for _, dependency := range u.dependencies {
+		dep := dependency
+		wg.Go(func() { checkDependencyHealth(ctx, dep, rc) })
+	}
 
 	// close channel when goroutines are done
 	go func() {
@@ -71,35 +68,16 @@ func (u *healthUsecase) CheckHealth(ctx context.Context) domain.HealthCheckResul
 	return output
 }
 
-func getMongoHealth(ctx context.Context, mongoClient *mongo.Client, rc chan<- domain.ServiceHealth) {
+func checkDependencyHealth(ctx context.Context, dependency domain.HealthDependency, rc chan<- domain.ServiceHealth) {
 	model := domain.ServiceHealth{
-		Name:    "mongo",
+		Name:    dependency.Name(),
 		Healthy: true,
 	}
 
 	start := time.Now()
-	err := mongoClient.Ping(ctx, nil)
+	err := dependency.Ping(ctx)
 	model.CheckDuration = time.Since(start)
 
-	if err != nil {
-		model.Healthy = false
-		model.Error = err.Error()
-	}
-
-	rc <- model
-}
-
-func getRedisHealth(ctx context.Context, redisClient *redis.Client, rc chan<- domain.ServiceHealth) {
-	model := domain.ServiceHealth{
-		Name:    "redis",
-		Healthy: true,
-	}
-
-	start := time.Now()
-	statusCmd := redisClient.Ping(ctx)
-	model.CheckDuration = time.Since(start)
-
-	err := statusCmd.Err()
 	if err != nil {
 		model.Healthy = false
 		model.Error = err.Error()

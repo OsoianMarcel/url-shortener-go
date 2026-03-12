@@ -7,12 +7,13 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/OsoianMarcel/url-shortener/internal/app"
 )
 
 const (
-	shutdownTimeout = 5
+	shutdownTimeout = 5 * time.Second
 )
 
 func main() {
