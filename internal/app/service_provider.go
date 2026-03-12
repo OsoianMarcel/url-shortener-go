@@ -45,7 +45,7 @@ func (sp *serviceProvider) getShortRepository() domain.ShortLinkRepo {
 
 	sp.shortRepository = infra.NewShortLinkRepository(
 		sp.logger,
-		sp.mongoClient.Database("shortener").Collection("short_links"),
+		sp.mongoClient,
 		sp.redisClient,
 	)
 

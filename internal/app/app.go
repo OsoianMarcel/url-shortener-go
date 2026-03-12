@@ -43,12 +43,12 @@ func (a *app) Serve(ctx context.Context) error {
 		return fmt.Errorf("init config: %w", err)
 	}
 
-	a.mongoClient, err = initMongoDB(ctx)
+	a.mongoClient, err = initMongoDB(ctx, conf.MongoDB)
 	if err != nil {
 		return fmt.Errorf("init mongodb: %w", err)
 	}
 
-	a.redisClient, err = initRedis(ctx)
+	a.redisClient, err = initRedis(ctx, conf.Redis)
 	if err != nil {
 		return fmt.Errorf("init redis: %w", err)
 	}
@@ -75,19 +75,25 @@ func (a *app) Shutdown(ctx context.Context) error {
 	var allErr error
 	var err error
 
-	err = a.httpServer.Shutdown(ctx)
-	if err != nil {
-		allErr = errors.Join(allErr, err)
+	if a.httpServer != nil {
+		err = a.httpServer.Shutdown(ctx)
+		if err != nil {
+			allErr = errors.Join(allErr, err)
+		}
 	}
 
-	err = a.serviceProvider.mongoClient.Disconnect(ctx)
-	if err != nil {
-		allErr = errors.Join(allErr, err)
+	if a.mongoClient != nil {
+		err = a.mongoClient.Disconnect(ctx)
+		if err != nil {
+			allErr = errors.Join(allErr, err)
+		}
 	}
 
-	err = a.serviceProvider.redisClient.Close()
-	if err != nil {
-		allErr = errors.Join(allErr, err)
+	if a.redisClient != nil {
+		err = a.redisClient.Close()
+		if err != nil {
+			allErr = errors.Join(allErr, err)
+		}
 	}
 
 	if allErr != nil {
@@ -132,12 +138,7 @@ func initLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{AddSource: false}))
 }
 
-func initRedis(ctx context.Context) (*redis.Client, error) {
-	redisConfig, err := config.NewRedisConfig()
-	if err != nil {
-		return nil, fmt.Errorf("load redis config: %w", err)
-	}
-
+func initRedis(ctx context.Context, redisConfig *config.RedisConfig) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr: redisConfig.Address(),
 	})
@@ -152,12 +153,7 @@ func initRedis(ctx context.Context) (*redis.Client, error) {
 	return client, nil
 }
 
-func initMongoDB(ctx context.Context) (*mongo.Client, error) {
-	mongoDBConfig, err := config.NewMongoDBConfig()
-	if err != nil {
-		return nil, fmt.Errorf("load mongodb config: %w", err)
-	}
-
+func initMongoDB(ctx context.Context, mongoDBConfig *config.MongoDBConfig) (*mongo.Client, error) {
 	timeoutCtx, cancelCtx := context.WithTimeout(ctx, 5*time.Second)
 	defer cancelCtx()
 

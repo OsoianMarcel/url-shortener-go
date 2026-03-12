@@ -38,10 +38,10 @@ type shortLinkRepo struct {
 	redis      *redis.Client
 }
 
-func NewShortLinkRepository(logger *slog.Logger, collection *mongo.Collection, redis *redis.Client) *shortLinkRepo {
+func NewShortLinkRepository(logger *slog.Logger, mongo *mongo.Client, redis *redis.Client) *shortLinkRepo {
 	return &shortLinkRepo{
 		logger:     logger,
-		collection: collection,
+		collection: mongo.Database("shortener").Collection("short_links"),
 		redis:      redis,
 	}
 }

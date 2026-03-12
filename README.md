@@ -38,7 +38,6 @@ The project applies Clean Architecture principles as strictly as possible:
 - **Use Cases**
   - Contain only business logic
   - Do not know anything about the database (interact only through repository interfaces)
-  - Depend only on the methods required (not entire repository interfaces)
   - Easily testable and mockable
 
 - **Delivery Layer**
