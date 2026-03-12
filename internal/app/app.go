@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/OsoianMarcel/url-shortener/internal/config"
-	commonHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handlers/common"
-	healthHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handlers/health"
-	shortHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handlers/short"
-	"github.com/OsoianMarcel/url-shortener/internal/delivery/http/middlewares"
+	commonHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/common"
+	healthHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/health"
+	shortHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/short"
+	"github.com/OsoianMarcel/url-shortener/internal/delivery/http/middleware"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -131,9 +131,9 @@ func initHTTPServer(sp *serviceProvider) (*http.Server, error) {
 
 	httpServer := &http.Server{
 		Addr: httpConfig.Address(),
-		Handler: middlewares.Chain(
+		Handler: middleware.Chain(
 			commonHTTPHandler.PreflightHandler(mux),
-			middlewares.LoggingMiddleware(sp.logger),
+			middleware.LoggingMiddleware(sp.logger),
 		),
 	}
 

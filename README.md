@@ -1,6 +1,6 @@
 # URL Shortener Microservice
 
-A lightweight URL shortener microservice written in **Go**, built as a RESTful API for managing short links.  
+A lightweight URL shortener microservice written in **Go**, built as a RESTful API for managing short links.
 
 ---
 
@@ -53,7 +53,7 @@ This strict separation allows changing the transport layer, database, or other d
 
 ## Notes on Implementation
 
-- Many GitHub examples labeled as *clean architecture* break its core rules (e.g., exposing business models directly in transport, or mixing errors across layers).  
+- Many GitHub examples labeled as _clean architecture_ break its core rules (e.g., exposing business models directly in transport, or mixing errors across layers).  
   This project aims to be a stricter example, based on my current understanding.
 - Writing in Clean Architecture takes more effort initially, but results in:
   - Easier testing
@@ -68,6 +68,7 @@ This strict separation allows changing the transport layer, database, or other d
 - Add proper test coverage
 - Improve error handling (e.g., with error codes or custom error types)
 - Add an additional transport layer (most likely CLI)
+- Add required DB indexes (they are currently not created automatically).
 
 ---
 

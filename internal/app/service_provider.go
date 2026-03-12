@@ -4,9 +4,9 @@ import (
 	"log/slog"
 
 	"github.com/OsoianMarcel/url-shortener/internal/config"
-	shortRepository "github.com/OsoianMarcel/url-shortener/internal/repositories/short"
-	healthUsecase "github.com/OsoianMarcel/url-shortener/internal/usecases/health"
-	shortUsecase "github.com/OsoianMarcel/url-shortener/internal/usecases/short"
+	"github.com/OsoianMarcel/url-shortener/internal/domain"
+	"github.com/OsoianMarcel/url-shortener/internal/infra"
+	"github.com/OsoianMarcel/url-shortener/internal/usecase"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -18,9 +18,9 @@ type serviceProvider struct {
 	mongoClient *mongo.Client
 	redisClient *redis.Client
 	// initialized providers
-	shortRepository shortRepository.Repository
-	shortUsecase    shortUsecase.Usecase
-	healthUsecase   healthUsecase.Usecase
+	shortRepository domain.ShortLinkRepo
+	shortUsecase    domain.ShortLinkUsecase
+	healthUsecase   domain.HealthUsecase
 }
 
 func newServiceProvider(
@@ -37,12 +37,12 @@ func newServiceProvider(
 	}
 }
 
-func (sp *serviceProvider) getShortRepository() shortRepository.Repository {
+func (sp *serviceProvider) getShortRepository() domain.ShortLinkRepo {
 	if sp.shortRepository != nil {
 		return sp.shortRepository
 	}
 
-	sp.shortRepository = shortRepository.New(
+	sp.shortRepository = infra.NewShortLinkRepository(
 		sp.logger,
 		sp.mongoClient.Database("shortener").Collection("short_links"),
 		sp.redisClient,
@@ -51,12 +51,12 @@ func (sp *serviceProvider) getShortRepository() shortRepository.Repository {
 	return sp.shortRepository
 }
 
-func (sp *serviceProvider) getShortUsecase() shortUsecase.Usecase {
+func (sp *serviceProvider) getShortUsecase() domain.ShortLinkUsecase {
 	if sp.shortUsecase != nil {
 		return sp.shortUsecase
 	}
 
-	sp.shortUsecase = shortUsecase.New(
+	sp.shortUsecase = usecase.NewShortLinkUsecase(
 		sp.logger,
 		sp.getShortRepository(),
 		sp.config.Business.BaseURL,
@@ -65,12 +65,12 @@ func (sp *serviceProvider) getShortUsecase() shortUsecase.Usecase {
 	return sp.shortUsecase
 }
 
-func (sp *serviceProvider) getHealthUsecase() healthUsecase.Usecase {
+func (sp *serviceProvider) getHealthUsecase() domain.HealthUsecase {
 	if sp.healthUsecase != nil {
 		return sp.healthUsecase
 	}
 
-	sp.healthUsecase = healthUsecase.New(sp.logger, sp.mongoClient, sp.redisClient)
+	sp.healthUsecase = usecase.NewHealthUsecase(sp.logger, sp.mongoClient, sp.redisClient)
 
 	return sp.healthUsecase
 }
