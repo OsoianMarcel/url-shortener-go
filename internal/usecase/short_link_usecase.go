@@ -48,7 +48,6 @@ func (u *shortLinkUsecase) Create(ctx context.Context, createInput domain.Create
 		ent := domain.ShortLink{
 			Key:         key,
 			OriginalURL: createInput.OriginalURL,
-			ShortURL:    u.buildShortURL(key),
 			CreatedAt:   time.Now(),
 		}
 
@@ -68,7 +67,7 @@ func (u *shortLinkUsecase) Create(ctx context.Context, createInput domain.Create
 		// after inserting, set the entity ID
 		ent.ID = id
 
-		return domain.CreateResult{Key: ent.Key, ShortURL: ent.ShortURL}, nil
+		return domain.CreateResult{Key: ent.Key, ShortURL: u.buildShortURL(ent.Key)}, nil
 	}
 
 	return domain.CreateResult{}, errors.New("Usecase.Create: circuit breaker")

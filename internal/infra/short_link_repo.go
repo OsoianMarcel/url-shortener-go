@@ -20,7 +20,6 @@ type shortLinkDoc struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	Key         string             `bson:"key"`
 	OriginalURL string             `bson:"originalURL"`
-	ShortURL    string             `bson:"shortURL"`
 	Hits        uint               `bson:"hits"`
 	CreatedAt   primitive.DateTime `bson:"createdAt"`
 }
@@ -283,7 +282,6 @@ func fromEntityToDocument(entity domain.ShortLink) shortLinkDoc {
 	return shortLinkDoc{
 		Key:         entity.Key,
 		OriginalURL: entity.OriginalURL,
-		ShortURL:    entity.ShortURL,
 		Hits:        entity.Hits,
 		CreatedAt:   primitive.NewDateTimeFromTime(entity.CreatedAt),
 	}
@@ -294,7 +292,6 @@ func fromDocumentToEntity(model shortLinkDoc) domain.ShortLink {
 		ID:          model.ID.Hex(),
 		Key:         model.Key,
 		OriginalURL: model.OriginalURL,
-		ShortURL:    model.ShortURL,
 		Hits:        model.Hits,
 		CreatedAt:   model.CreatedAt.Time(),
 	}

@@ -8,7 +8,6 @@ type ShortLink struct {
 	// The unique key
 	Key         string
 	OriginalURL string
-	ShortURL    string
 	Hits        uint
 	CreatedAt   time.Time
 }

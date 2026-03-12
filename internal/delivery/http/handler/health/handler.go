@@ -1,7 +1,6 @@
 package health
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 	"time"
@@ -10,19 +9,15 @@ import (
 	"github.com/OsoianMarcel/url-shortener/internal/domain"
 )
 
-type healthUsecase interface {
-	CheckHealth(ctx context.Context) domain.HealthCheckResult
-}
-
 type handler struct {
-	usecase healthUsecase
+	usecase domain.HealthUsecase
 	logger  *slog.Logger
 }
 
 func RegisterHandler(
 	router *http.ServeMux,
 	logger *slog.Logger,
-	usecase healthUsecase,
+	usecase domain.HealthUsecase,
 ) {
 	h := &handler{
 		usecase: usecase,
