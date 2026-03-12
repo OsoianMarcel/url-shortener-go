@@ -21,6 +21,10 @@ case $farg in
 	. ./.env && go run ./cmd/app "$@"
   ;;
 
+"run:watch")
+  . ./.env && watchexec --restart --exts go -- go run ./cmd/app "$@"
+  ;;
+
 "test")
 	go test -v ./...
   ;;
@@ -34,11 +38,15 @@ case $farg in
   ;;
 
 "dc:up")
-  dockerCompose up -d
+  dockerCompose up -d "$@"
   ;;
 
 "dc:down")
-  dockerCompose down -v
+  dockerCompose down "$@"
+  ;;
+
+"dc:logs")
+  dockerCompose logs -f -n 100 "$@"
   ;;
 
 *)
