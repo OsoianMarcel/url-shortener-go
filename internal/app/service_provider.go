@@ -19,9 +19,9 @@ type serviceProvider struct {
 	mongoClient *mongo.Client
 	redisClient *redis.Client
 	// initialized providers
-	shortRepository domain.ShortLinkRepo
-	shortUsecase    domain.ShortLinkUsecase
-	healthUsecase   domain.HealthUsecase
+	shortLinkRep     domain.ShortLinkRepo
+	shortLinkUsecase domain.ShortLinkUsecase
+	healthUsecase    domain.HealthUsecase
 }
 
 func newServiceProvider(
@@ -38,36 +38,36 @@ func newServiceProvider(
 	}
 }
 
-func (sp *serviceProvider) getShortRepository() domain.ShortLinkRepo {
-	if sp.shortRepository != nil {
-		return sp.shortRepository
+func (sp *serviceProvider) getShortRepo() domain.ShortLinkRepo {
+	if sp.shortLinkRep != nil {
+		return sp.shortLinkRep
 	}
 
-	sp.shortRepository = infra.NewShortLinkRepository(
+	sp.shortLinkRep = infra.NewShortLinkRepository(
 		sp.logger,
 		sp.mongoClient,
 		sp.redisClient,
 	)
 
-	return sp.shortRepository
+	return sp.shortLinkRep
 }
 
-func (sp *serviceProvider) getShortUsecase() domain.ShortLinkUsecase {
-	if sp.shortUsecase != nil {
-		return sp.shortUsecase
+func (sp *serviceProvider) getShortLinkUsecase() domain.ShortLinkUsecase {
+	if sp.shortLinkUsecase != nil {
+		return sp.shortLinkUsecase
 	}
 
 	buildShortURL := func(key string) string {
 		return fmt.Sprintf("%s/api/shortener/%s/redirect", sp.config.Business.BaseURL, key)
 	}
 
-	sp.shortUsecase = usecase.NewShortLinkUsecase(
+	sp.shortLinkUsecase = usecase.NewShortLinkUsecase(
 		sp.logger,
-		sp.getShortRepository(),
+		sp.getShortRepo(),
 		buildShortURL,
 	)
 
-	return sp.shortUsecase
+	return sp.shortLinkUsecase
 }
 
 func (sp *serviceProvider) getHealthUsecase() domain.HealthUsecase {

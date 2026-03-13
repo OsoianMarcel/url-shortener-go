@@ -66,7 +66,6 @@ This strict separation allows changing the transport layer, database, or other d
 
 - Add proper test coverage
 - Improve error handling (e.g., with error codes or custom error types)
-- Add an additional transport layer (most likely CLI)
 - Add required DB indexes (they are currently not created automatically).
 
 ---
@@ -88,6 +87,26 @@ You can start the project easily using the provided [manage.sh] script:
 
 # ensure the .env file is present before running the application
 ./manage.sh run
+```
+
+### CLI Mode
+
+The binary now behaves as a CLI entrypoint.
+
+- With no command, it starts the HTTP server (same behavior as before).
+- With a command, it runs the CLI action.
+
+Examples:
+
+```bash
+# create a short URL
+./manage.sh run short create --url https://example.com/path
+
+# expand by key (pure lookup, does not increment hits)
+./manage.sh run short expand --key abc123
+
+# delete by key
+./manage.sh run short delete --key abc123
 ```
 
 ---

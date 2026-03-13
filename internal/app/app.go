@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/OsoianMarcel/url-shortener/internal/config"
+	"github.com/OsoianMarcel/url-shortener/internal/delivery/cli"
+	"github.com/OsoianMarcel/url-shortener/internal/delivery/cli/command"
 	commonHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/common"
 	healthHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/health"
 	shortHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/short"
@@ -25,6 +27,7 @@ type app struct {
 	redisClient     *redis.Client
 	serviceProvider *serviceProvider
 	httpServer      *http.Server
+	initialized     bool
 }
 
 func New() (*app, error) {
@@ -33,7 +36,11 @@ func New() (*app, error) {
 	return a, nil
 }
 
-func (a *app) Serve(ctx context.Context) error {
+func (a *app) Init(ctx context.Context) error {
+	if a.initialized {
+		return nil
+	}
+
 	var err error
 
 	a.logger = initLogger()
@@ -61,6 +68,16 @@ func (a *app) Serve(ctx context.Context) error {
 	)
 
 	a.httpServer = initHTTPServer(a.serviceProvider)
+	a.initialized = true
+
+	return nil
+}
+
+// ServeHTTP inits the app and starts the HTTP server.
+func (a *app) ServeHTTP(ctx context.Context) error {
+	if err := a.Init(ctx); err != nil {
+		return fmt.Errorf("init: %w", err)
+	}
 
 	a.logger.Info("starting the HTTP server", slog.String("addr", a.serviceProvider.config.Http.Address()))
 
@@ -71,13 +88,25 @@ func (a *app) Serve(ctx context.Context) error {
 	return nil
 }
 
+// ServeCLI inits the app, registers CLI commands with their dependencies
+// from the DI container, and runs the CLI against the provided args.
+func (a *app) ServeCLI(ctx context.Context, args []string) error {
+	if err := a.Init(ctx); err != nil {
+		return fmt.Errorf("init: %w", err)
+	}
+
+	shortCmd := command.NewShortCommand(a.serviceProvider.getShortLinkUsecase())
+
+	return cli.Run(ctx, args, os.Stdout, os.Stderr, shortCmd)
+}
+
 func (a *app) Shutdown(ctx context.Context) error {
 	var allErr error
 	var err error
 
 	if a.httpServer != nil {
 		err = a.httpServer.Shutdown(ctx)
-		if err != nil {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			allErr = errors.Join(allErr, err)
 		}
 	}
@@ -100,8 +129,6 @@ func (a *app) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("graceful shutdown: %w", allErr)
 	}
 
-	a.logger.Info("shutdown completed successfully")
-
 	return nil
 }
 
@@ -112,7 +139,7 @@ func initHTTPServer(sp *serviceProvider) *http.Server {
 	shortHTTPHandler.RegisterHandler(
 		mux,
 		sp.logger,
-		sp.getShortUsecase(),
+		sp.getShortLinkUsecase(),
 		sp.config.Http.APISecret,
 		sp.config.Business.LinkNotFoundRedirectURL,
 	)

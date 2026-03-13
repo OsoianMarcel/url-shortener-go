@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -25,15 +26,28 @@ func main() {
 		log.Fatalf("init app: %v", err)
 	}
 
+	if args := os.Args[1:]; len(args) > 0 {
+		if err := a.ServeCLI(ctx, args); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+
+		if err := a.Shutdown(shutdownCtx); err != nil {
+			log.Printf("graceful shutdown: %v", err)
+		}
+
+		return
+	}
+
 	var wg sync.WaitGroup
 	srvErr := make(chan error, 1)
 
-	// Run the server.
 	wg.Go(func() {
-		srvErr <- a.Serve(ctx)
+		srvErr <- a.ServeHTTP(ctx)
 	})
 
-	// Watch for signal or server error.
 	select {
 	case <-ctx.Done():
 		log.Println("shutting down...")
@@ -43,6 +57,8 @@ func main() {
 
 		if err := a.Shutdown(shutdownCtx); err != nil {
 			log.Printf("graceful shutdown: %v", err)
+		} else {
+			log.Println("shutdown completed successfully")
 		}
 
 	case err := <-srvErr:
