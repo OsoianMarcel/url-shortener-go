@@ -9,6 +9,11 @@ import (
 	"github.com/OsoianMarcel/url-shortener/internal/domain"
 )
 
+const (
+	// HealthCheckTimeout is the maximum duration for a health check to complete.
+	healthCheckTimeout = 3 * time.Second
+)
+
 var _ domain.HealthUsecase = (*healthUsecase)(nil)
 
 type healthUsecase struct {
@@ -44,16 +49,13 @@ func (u *healthUsecase) CheckHealth(ctx context.Context) domain.HealthCheckResul
 	}()
 
 	// receive the results from the channel
-	for r := range rc {
-		services = append(services, r)
-	}
-
 	allHealthy := true
-	for _, service := range services {
-		if !service.Healthy {
+	for r := range rc {
+		if !r.Healthy {
 			allHealthy = false
-			break
 		}
+
+		services = append(services, r)
 	}
 
 	if !allHealthy {
@@ -73,6 +75,9 @@ func checkDependencyHealth(ctx context.Context, dependency domain.HealthDependen
 		Name:    dependency.Name(),
 		Healthy: true,
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, healthCheckTimeout)
+	defer cancel()
 
 	start := time.Now()
 	err := dependency.Ping(ctx)
