@@ -8,20 +8,15 @@ services:
     networks:
       - shortener-internal
   shortener-mongodb:
-    image: bitnami/mongodb:7.0
+    image: mongo:8.2.5
     ports:
       - 27017:27017
     environment:
-      MONGODB_REPLICA_SET_MODE: primary
-      MONGODB_REPLICA_SET_KEY: replicasetkey123
-      MONGODB_ADVERTISED_HOSTNAME: shortener-mongodb
-      MONGODB_ROOT_USER: admin
-      MONGODB_ROOT_PASSWORD: qwerty
-      MONGODB_DATABASE: shortener
-      MONGODB_USERNAME: user
-      MONGODB_PASSWORD: qwerty
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: qwerty
+      MONGO_INITDB_DATABASE: shortener
     volumes:
-      - mongodb-data:/bitnami/mongodb
+      - mongodb-data:/data/db
     networks:
       - shortener-internal
 volumes:
