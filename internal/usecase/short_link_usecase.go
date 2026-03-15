@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"time"
 
 	"github.com/OsoianMarcel/url-shortener/internal/domain"
 	"github.com/OsoianMarcel/url-shortener/pkg/randlinkkey"
@@ -49,11 +48,7 @@ func (u *shortLinkUsecase) Create(ctx context.Context, createInput domain.Create
 
 	for i := range createCircuitBreaker {
 		key := randlinkkey.GenLinkKey(linkKeyLength)
-		ent := domain.ShortLink{
-			Key:         key,
-			OriginalURL: createInput.OriginalURL,
-			CreatedAt:   time.Now(),
-		}
+		ent := domain.NewShortLink(key, createInput.OriginalURL)
 
 		id, err := u.shortLinkRepo.InsertOne(ctx, ent)
 		if err != nil {

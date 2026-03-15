@@ -11,3 +11,12 @@ type ShortLink struct {
 	Hits        uint
 	CreatedAt   time.Time
 }
+
+func NewShortLink(key, originalURL string) ShortLink {
+	return ShortLink{
+		Key:         key,
+		OriginalURL: originalURL,
+		Hits:        0,
+		CreatedAt:   time.Now(),
+	}
+}

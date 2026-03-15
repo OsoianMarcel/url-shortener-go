@@ -171,18 +171,12 @@ func (r *shortLinkRepo) DeleteOne(ctx context.Context, key string) error {
 
 	err = r.deleteEntityCache(ctx, key)
 	if err != nil {
-		r.logger.Warn("unable to delete short URL entity from cache",
-			slog.String("key", key),
-			slog.Any("err", err),
-		)
+		return fmt.Errorf("delete entity form cache: %w", err)
 	}
 
 	err = r.deleteOriginalURLCache(ctx, key)
 	if err != nil {
-		r.logger.Warn("unable to delete original URL form cache",
-			slog.String("key", key),
-			slog.Any("err", err),
-		)
+		return fmt.Errorf("delete original URL form cache: %w", err)
 	}
 
 	return nil
