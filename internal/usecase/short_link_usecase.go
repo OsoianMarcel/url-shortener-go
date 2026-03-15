@@ -39,7 +39,11 @@ func NewShortLinkUsecase(
 
 func (u *shortLinkUsecase) Create(ctx context.Context, createInput domain.CreateAction) (domain.CreateResult, error) {
 	// validate URL
-	if _, err := url.ParseRequestURI(createInput.OriginalURL); err != nil {
+	parsedURL, err := url.ParseRequestURI(createInput.OriginalURL)
+	if err != nil {
+		return domain.CreateResult{}, domain.ErrInvalidURL
+	}
+	if parsedURL.Host == "" || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
 		return domain.CreateResult{}, domain.ErrInvalidURL
 	}
 

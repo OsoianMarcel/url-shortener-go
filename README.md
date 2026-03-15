@@ -66,7 +66,6 @@ This strict separation allows changing the transport layer, database, or other d
 
 - Add proper test coverage
 - Improve error handling (e.g., with error codes or custom error types)
-- Add required DB indexes (they are currently not created automatically).
 
 ---
 

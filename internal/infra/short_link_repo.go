@@ -16,6 +16,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+const (
+	shortenerDBName              = "shortener"
+	shortLinksCollectionName     = "short_links"
+	shortLinksUniqueKeyIndexName = "short_links_key_unique"
+)
+
 type shortLinkDoc struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	Key         string             `bson:"key"`
@@ -40,7 +46,7 @@ type shortLinkRepo struct {
 func NewShortLinkRepository(logger *slog.Logger, mongo *mongo.Client, redis *redis.Client) *shortLinkRepo {
 	return &shortLinkRepo{
 		logger:     logger,
-		collection: mongo.Database("shortener").Collection("short_links"),
+		collection: mongo.Database(shortenerDBName).Collection(shortLinksCollectionName),
 		redis:      redis,
 	}
 }

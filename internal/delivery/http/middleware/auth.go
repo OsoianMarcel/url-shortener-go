@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"crypto/subtle"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -13,21 +14,20 @@ func AuthenticationMiddleware(apiSecret string, logger *slog.Logger) Middleware 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			responder := httputil.NewJsonResponder(w, logger)
 
-			auth := r.Header.Get("Authorization")
+			auth := strings.TrimSpace(r.Header.Get("Authorization"))
 			if auth == "" {
 				responder.Unauthorized("The auth token is missing.")
 				return
 			}
 
-			authParts := strings.Split(auth, "Bearer ")
-			if len(authParts) != 2 {
+			authParts := strings.Fields(auth)
+			if len(authParts) != 2 || !strings.EqualFold(authParts[0], "Bearer") {
 				responder.Unauthorized("Invalid Authorization header.")
 				return
 			}
 
 			token := authParts[1]
-
-			if token != apiSecret {
+			if subtle.ConstantTimeCompare([]byte(token), []byte(apiSecret)) != 1 {
 				responder.Unauthorized("Invalid token.")
 				return
 			}

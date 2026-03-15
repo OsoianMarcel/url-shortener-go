@@ -43,6 +43,24 @@ func TestAuthorizationMiddleware(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody:   "success",
 		},
+		{
+			name:           "Valid Token With Lowercase Bearer",
+			authHeader:     "bearer secret123",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "success",
+		},
+		{
+			name:           "Valid Token With Extra Spaces",
+			authHeader:     "Bearer    secret123",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "success",
+		},
+		{
+			name:           "Invalid Authorization Header With Extra Parts",
+			authHeader:     "Bearer secret123 extra",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   `{"error":"Invalid Authorization header."}`,
+		},
 	}
 
 	for _, tt := range tests {

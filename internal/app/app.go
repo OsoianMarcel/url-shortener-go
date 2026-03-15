@@ -16,6 +16,7 @@ import (
 	healthHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/health"
 	shortHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/short"
 	"github.com/OsoianMarcel/url-shortener/internal/delivery/http/middleware"
+	"github.com/OsoianMarcel/url-shortener/internal/infra"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -53,6 +54,10 @@ func (a *app) Init(ctx context.Context) error {
 	a.mongoClient, err = initMongoDB(ctx, conf.MongoDB)
 	if err != nil {
 		return fmt.Errorf("init mongodb: %w", err)
+	}
+
+	if err := infra.EnsureShortLinkIndexes(ctx, a.logger, a.mongoClient); err != nil {
+		return fmt.Errorf("ensure mongodb indexes: %w", err)
 	}
 
 	a.redisClient, err = initRedis(ctx, conf.Redis)
