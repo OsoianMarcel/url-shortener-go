@@ -155,7 +155,12 @@ func initHTTPServer(sp *serviceProvider) *http.Server {
 		Handler: middleware.Chain(
 			commonHTTPHandler.PreflightHandler(mux),
 			middleware.LoggingMiddleware(sp.logger),
+			middleware.RecoverMiddleware(sp.logger),
 		),
+		ReadHeaderTimeout: 2 * time.Second,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	return httpServer

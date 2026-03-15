@@ -198,7 +198,7 @@ func (r *shortLinkRepo) FindStats(ctx context.Context, key string) (domain.Stats
 	statsDoc := new(statsDoc)
 	filter := bson.M{"key": key}
 	projection := bson.M{"hits": 1, "createdAt": 1, "_id": 0}
-	err := r.collection.FindOne(ctx, filter, options.FindOne().SetProjection(projection)).Decode(&statsDoc)
+	err := r.collection.FindOne(ctx, filter, options.FindOne().SetProjection(projection)).Decode(statsDoc)
 	if err == mongo.ErrNoDocuments {
 		return domain.StatsResult{}, domain.ErrShortLinkNotFound
 	}
