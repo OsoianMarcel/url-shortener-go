@@ -5,6 +5,7 @@ import "fmt"
 type Config struct {
 	Business *BusinessConfig
 	Http     *HttpConfig
+	Grpc     *GrpcConfig
 	MongoDB  *MongoDBConfig
 	Redis    *RedisConfig
 }
@@ -20,6 +21,11 @@ func New() (*Config, error) {
 		return nil, fmt.Errorf("init http config: %w", err)
 	}
 
+	grpcConfig, err := NewGrpcConfig()
+	if err != nil {
+		return nil, fmt.Errorf("init grpc config: %w", err)
+	}
+
 	mongodbConfig, err := NewMongoDBConfig()
 	if err != nil {
 		return nil, fmt.Errorf("init mongodb config: %w", err)
@@ -33,6 +39,7 @@ func New() (*Config, error) {
 	return &Config{
 		Business: businessConfig,
 		Http:     httpConfig,
+		Grpc:     grpcConfig,
 		MongoDB:  mongodbConfig,
 		Redis:    redisConfig,
 	}, nil

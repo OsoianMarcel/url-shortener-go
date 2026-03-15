@@ -17,12 +17,13 @@ It follows Go project layout best practices and demonstrates how to structure a 
   - **Repository** – data access layer
   - **Use Cases** – business logic
   - **Entities & Models**
-  - **Delivery Layer** – currently only HTTP, with plans to add another transport to showcase the advantages of clean architecture
+  - **Delivery Layer** – HTTP, gRPC, and CLI transports over the same use cases
 - **Health check endpoint** – useful for Kubernetes liveness/readiness probes
 - **OpenAPI documentation** – REST API described via a YAML spec
+- **gRPC contract** – protobuf-defined API for short-link and health operations
 - **Docker Compose** & [manage.sh] script – simple project startup
-- **Graceful shutdown** – stops accepting new HTTP connections and allows existing requests to finish during rolling updates (avoiding `500` errors)
-- **No frameworks used** – implemented entirely with Go’s standard library for learning purposes
+- **Graceful shutdown** – stops accepting new HTTP and gRPC connections and allows in-flight calls to finish during rolling updates
+- **No web frameworks used** – HTTP stack uses Go’s standard library, while gRPC uses the official `grpc-go` package
 
 ---
 
@@ -44,7 +45,7 @@ The project applies Clean Architecture principles as strictly as possible:
   - Independent from business logic
   - Translates domain models into **DTOs** (Data Transfer Objects)
   - Never exposes domain models directly
-  - Currently implemented as a REST API, but could be extended to CLI, gRPC, XML API, etc.
+  - Implemented as REST API, gRPC, and CLI using the same usecase contracts
 
 This strict separation allows changing the transport layer, database, or other dependencies with minimal effort.
 
@@ -86,6 +87,9 @@ You can start the project easily using the provided [manage.sh] script:
 
 # ensure the .env file is present before running the application
 ./manage.sh run
+
+# regenerate protobuf and gRPC generated files (after editing .proto)
+./manage.sh proto
 ```
 
 ### CLI Mode

@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package urlshortener.v1;
+
+option go_package = "github.com/OsoianMarcel/url-shortener/internal/delivery/grpc/pb;pb";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service ShortLinkService {
+  rpc CreateShortLink(CreateShortLinkRequest) returns (CreateShortLinkResponse);
+  rpc DeleteShortLink(DeleteShortLinkRequest) returns (google.protobuf.Empty);
+  rpc ExpandShortLink(ExpandShortLinkRequest) returns (ExpandShortLinkResponse);
+  rpc GetShortLinkStats(GetShortLinkStatsRequest) returns (GetShortLinkStatsResponse);
+}
+
+service HealthService {
+  rpc CheckHealth(CheckHealthRequest) returns (CheckHealthResponse);
+}
+
+message CreateShortLinkRequest {
+  string url = 1;
+}
+
+message CreateShortLinkResponse {
+  string short_url = 1;
+  string key = 2;
+}
+
+message DeleteShortLinkRequest {
+  string link_key = 1;
+}
+
+message ExpandShortLinkRequest {
+  string link_key = 1;
+}
+
+message ExpandShortLinkResponse {
+  string url = 1;
+}
+
+message GetShortLinkStatsRequest {
+  string link_key = 1;
+}
+
+message GetShortLinkStatsResponse {
+  uint64 hits = 1;
+  google.protobuf.Timestamp created_at = 2;
+}
+
+message CheckHealthRequest {}
+
+message CheckHealthResponse {
+  bool all_healthy = 1;
+  repeated ServiceHealth services = 2;
+  google.protobuf.Timestamp server_time = 3;
+}
+
+message ServiceHealth {
+  string name = 1;
+  bool healthy = 2;
+  string error = 3;
+  google.protobuf.Duration check_duration = 4;
+}

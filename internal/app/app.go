@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/OsoianMarcel/url-shortener/internal/config"
 	"github.com/OsoianMarcel/url-shortener/internal/delivery/cli"
 	"github.com/OsoianMarcel/url-shortener/internal/delivery/cli/command"
+	grpcdelivery "github.com/OsoianMarcel/url-shortener/internal/delivery/grpc"
 	commonHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/common"
 	healthHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/health"
 	shortHTTPHandler "github.com/OsoianMarcel/url-shortener/internal/delivery/http/handler/short"
@@ -20,6 +22,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	gogrpc "google.golang.org/grpc"
 )
 
 type app struct {
@@ -28,16 +31,21 @@ type app struct {
 	redisClient     *redis.Client
 	serviceProvider *serviceProvider
 	httpServer      *http.Server
+	grpcServer      *gogrpc.Server
 	initialized     bool
 }
 
-func New() (*app, error) {
+func New(ctx context.Context) (*app, error) {
 	a := &app{}
+
+	if err := a.init(ctx); err != nil {
+		return nil, err
+	}
 
 	return a, nil
 }
 
-func (a *app) Init(ctx context.Context) error {
+func (a *app) init(ctx context.Context) error {
 	if a.initialized {
 		return nil
 	}
@@ -73,17 +81,14 @@ func (a *app) Init(ctx context.Context) error {
 	)
 
 	a.httpServer = initHTTPServer(a.serviceProvider)
+	a.grpcServer = initGRPCServer(a.serviceProvider)
 	a.initialized = true
 
 	return nil
 }
 
-// ServeHTTP inits the app and starts the HTTP server.
+// ServeHTTP starts the HTTP server.
 func (a *app) ServeHTTP(ctx context.Context) error {
-	if err := a.Init(ctx); err != nil {
-		return fmt.Errorf("init: %w", err)
-	}
-
 	a.logger.Info("starting the HTTP server", slog.String("addr", a.serviceProvider.config.Http.Address()))
 
 	if err := a.httpServer.ListenAndServe(); err != http.ErrServerClosed {
@@ -93,13 +98,25 @@ func (a *app) ServeHTTP(ctx context.Context) error {
 	return nil
 }
 
+// ServeGRPC starts the gRPC server.
+func (a *app) ServeGRPC(ctx context.Context) error {
+	listener, err := net.Listen("tcp", a.serviceProvider.config.Grpc.Address())
+	if err != nil {
+		return fmt.Errorf("listen gRPC server: %w", err)
+	}
+
+	a.logger.Info("starting the gRPC server", slog.String("addr", a.serviceProvider.config.Grpc.Address()))
+
+	if err := a.grpcServer.Serve(listener); err != nil && !errors.Is(err, gogrpc.ErrServerStopped) {
+		return fmt.Errorf("serve gRPC server: %w", err)
+	}
+
+	return nil
+}
+
 // ServeCLI inits the app, registers CLI commands with their dependencies
 // from the DI container, and runs the CLI against the provided args.
 func (a *app) ServeCLI(ctx context.Context, args []string) error {
-	if err := a.Init(ctx); err != nil {
-		return fmt.Errorf("init: %w", err)
-	}
-
 	shortCmd := command.NewShortCommand(a.serviceProvider.getShortLinkUsecase())
 
 	return cli.Run(ctx, args, os.Stdout, os.Stderr, shortCmd)
@@ -113,6 +130,21 @@ func (a *app) Shutdown(ctx context.Context) error {
 		err = a.httpServer.Shutdown(ctx)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			allErr = errors.Join(allErr, err)
+		}
+	}
+
+	if a.grpcServer != nil {
+		grpcStopped := make(chan struct{})
+		go func() {
+			a.grpcServer.GracefulStop()
+			close(grpcStopped)
+		}()
+
+		select {
+		case <-grpcStopped:
+		case <-ctx.Done():
+			a.grpcServer.Stop()
+			<-grpcStopped
 		}
 	}
 
@@ -169,6 +201,15 @@ func initHTTPServer(sp *serviceProvider) *http.Server {
 	}
 
 	return httpServer
+}
+
+func initGRPCServer(sp *serviceProvider) *gogrpc.Server {
+	return grpcdelivery.NewServer(
+		sp.logger,
+		sp.config.Http.APISecret,
+		sp.getShortLinkUsecase(),
+		sp.getHealthUsecase(),
+	)
 }
 
 func initLogger() *slog.Logger {

@@ -21,7 +21,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	a, err := app.New()
+	a, err := app.New(ctx)
 	if err != nil {
 		log.Fatalf("init app: %v", err)
 	}
@@ -41,15 +41,7 @@ func main() {
 		return
 	}
 
-	var wg sync.WaitGroup
-	srvErr := make(chan error, 1)
-
-	wg.Go(func() {
-		srvErr <- a.ServeHTTP(ctx)
-	})
-
-	select {
-	case <-ctx.Done():
+	gracefulShutdown := func() {
 		log.Println("shutting down...")
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
@@ -60,11 +52,31 @@ func main() {
 		} else {
 			log.Println("shutdown completed successfully")
 		}
+	}
+
+	var wg sync.WaitGroup
+	srvErr := make(chan error, 2)
+
+	wg.Go(func() {
+		srvErr <- a.ServeHTTP(ctx)
+	})
+	wg.Go(func() {
+		srvErr <- a.ServeGRPC(ctx)
+	})
+
+	select {
+	case <-ctx.Done():
+		gracefulShutdown()
 
 	case err := <-srvErr:
-		if err != nil {
-			log.Fatalf("server error: %v", err)
+		if err == nil {
+			log.Printf("server stopped unexpectedly")
+		} else {
+			log.Printf("server error: %v", err)
 		}
+
+		stop()
+		gracefulShutdown()
 	}
 
 	wg.Wait()

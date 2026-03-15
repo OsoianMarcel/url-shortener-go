@@ -33,6 +33,16 @@ case $farg in
 	go fmt ./...
   ;;
 
+"proto")
+  protoc \
+    --proto_path=. \
+    --go_out=. \
+    --go_opt=module=github.com/OsoianMarcel/url-shortener \
+    --go-grpc_out=. \
+    --go-grpc_opt=module=github.com/OsoianMarcel/url-shortener \
+    api/proto/url_shortener.proto
+  ;;
+
 "dc")
   dockerCompose "$@"
   ;;
